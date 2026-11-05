@@ -27,7 +27,7 @@ import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aistra.hail.HailApp.Companion.app
@@ -81,11 +81,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             onItemLongClickListener = this@PagerFragment
         }
         binding.recyclerView.run {
-            layoutManager = GridLayoutManager(
-                activity, resources.getInteger(
-                    if (HailData.compactIcon) R.integer.home_span_compact else R.integer.home_span
-                )
-            )
+            layoutManager = LinearLayoutManager(activity)
             adapter = pagerAdapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -108,12 +104,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             override fun isItemViewSwipeEnabled() = false
 
             override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
-                val info = pagerAdapter.currentList.getOrNull(viewHolder.bindingAdapterPosition) ?: return 0
-                return if (query.isEmpty() && !multiselect && info.state == AppInfo.State.FROZEN) {
-                    makeMovementFlags(
-                        ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT,
-                        0
-                    )
+                return if (query.isEmpty() && !multiselect && viewHolder.bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
                 } else 0
             }
 
@@ -124,9 +116,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             ): Boolean {
                 val from = source.bindingAdapterPosition
                 val to = target.bindingAdapterPosition
-                val fromInfo = pagerAdapter.currentList.getOrNull(from) ?: return false
-                val toInfo = pagerAdapter.currentList.getOrNull(to) ?: return false
-                if (fromInfo.state != AppInfo.State.FROZEN || toInfo.state != AppInfo.State.FROZEN) return false
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
                 pagerAdapter.moveItem(from, to)
                 return true
             }
@@ -136,10 +126,9 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
                 tag?.second?.let { tagId ->
-                    HailData.saveManualFrozenOrder(
+                    HailData.saveManualAppOrder(
                         tagId,
-                        pagerAdapter.currentList.filter { it.state == AppInfo.State.FROZEN }
-                            .map { it.packageName }
+                        pagerAdapter.currentList.map { it.packageName }
                     )
                 }
             }
@@ -188,14 +177,13 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             ) || PinyinSearch.searchPinyinAll(it.name.toString(), query))
         }
         val displayList = if (query.isEmpty()) {
-            val order = tag?.second?.let { HailData.getManualFrozenOrder(it) }.orEmpty()
-            val frozen = filtered.filter { it.state == AppInfo.State.FROZEN }.sortedWith(
+            val order = tag?.second?.let { HailData.getManualAppOrder(it) }.orEmpty()
+            filtered.sortedWith(
                 compareBy<AppInfo> {
                     val index = order.indexOf(it.packageName)
                     if (index < 0) Int.MAX_VALUE else index
                 }.thenBy { it.name.toString() }
             )
-            frozen + filtered.filter { it.state != AppInfo.State.FROZEN }.sortedWith(NameComparator)
         } else filtered.sortedWith(NameComparator)
         pagerAdapter.dragEnabled = query.isEmpty() && !multiselect
         binding.empty.isVisible = displayList.isEmpty()
@@ -532,7 +520,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                     val oldTagId = HailData.tags[position].second
                     HailData.tags[position] = tagName to if (defaultTab) 0 else tagId
                     if (!defaultTab) {
-                        HailData.moveManualFrozenOrder(oldTagId, tagId)
+                        HailData.moveManualAppOrder(oldTagId, tagId)
                         pagerAdapter.currentList.forEach {
                             val index = it.tagIdList.indexOf(oldTagId)
                             if (index != -1) it.tagIdList[index] = tagId
@@ -552,7 +540,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                             removeCheckedApp(it.packageName, false)
                         }
                     }
-                    HailData.clearManualFrozenOrder(tagIdToRemove)
+                    HailData.clearManualAppOrder(tagIdToRemove)
                     HailData.tags.removeAt(position)
                     homeAdapter.notifyItemRemoved(position)
                     if (tabLayout.tabCount == 1) tabLayout.isVisible = false
