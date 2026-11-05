@@ -36,15 +36,22 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             if (!commitSubject.startsWith("[release]")) versionNameSuffix = "-g$commitHash"
-            signingConfig = if (signingProps.exists()) {
-                val props = `java.util`.Properties().apply { load(signingProps.reader()) }
-                signingConfigs.create("release") {
-                    storeFile = file(props.getProperty("storeFile"))
-                    storePassword = props.getProperty("storePassword")
-                    keyAlias = props.getProperty("keyAlias")
-                    keyPassword = props.getProperty("keyPassword")
-                }
-            } else signingConfigs.getByName("debug")
+            // Always use the same persistent release keystore. Never fall back to
+            // an ephemeral GitHub Actions debug key, which breaks upgrade installs.
+            val keystorePath = System.getenv("SIGNING_KEYSTORE_PATH")
+                ?: throw GradleException("Missing SIGNING_KEYSTORE_PATH; configure the persistent release signing secrets.")
+            val storePasswordValue = System.getenv("SIGNING_STORE_PASSWORD")
+                ?: throw GradleException("Missing SIGNING_STORE_PASSWORD.")
+            val keyAliasValue = System.getenv("SIGNING_KEY_ALIAS")
+                ?: throw GradleException("Missing SIGNING_KEY_ALIAS.")
+            val keyPasswordValue = System.getenv("SIGNING_KEY_PASSWORD")
+                ?: throw GradleException("Missing SIGNING_KEY_PASSWORD.")
+            signingConfig = signingConfigs.create("release") {
+                storeFile = file(keystorePath)
+                storePassword = storePasswordValue
+                keyAlias = keyAliasValue
+                keyPassword = keyPasswordValue
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
