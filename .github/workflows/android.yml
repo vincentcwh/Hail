@@ -5,11 +5,6 @@ on:
     branches:
       - main
       - manual-order
-    paths-ignore:
-      - '**.md'
-      - 'fastlane/**'
-      - '.github/**'
-      - '!.github/workflows/android.yml'
 
 jobs:
   build:
