@@ -31,6 +31,8 @@ android {
             versionNameSuffix = "-g$commitHash"
         }
         release {
+            // Install alongside the official Hail package without replacing its data.
+            applicationIdSuffix = ".manual"
             isMinifyEnabled = true
             isShrinkResources = true
             if (!commitSubject.startsWith("[release]")) versionNameSuffix = "-g$commitHash"
