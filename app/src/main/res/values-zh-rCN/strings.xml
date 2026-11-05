@@ -156,4 +156,6 @@
     <string name="state_uninstalled">已卸载</string>
     <string name="donate_kofi">Ko-fi</string>
     <string name="mode_jailbreak_disable">越狱 - 停用</string>
+    <string name="action_arrange">排列</string>
+    <string name="action_arrange_done">完成</string>
 </resources>
