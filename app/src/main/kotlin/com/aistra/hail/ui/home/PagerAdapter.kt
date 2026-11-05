@@ -111,10 +111,10 @@ class PagerAdapter(
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, HailData.homeFontSize)
             }
             findViewById<TextView>(R.id.drag_handle).run {
-                isVisible = dragEnabled && info.state == AppInfo.State.FROZEN
+                isVisible = dragEnabled
                 setOnTouchListener { _, event ->
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) onStartDragListener?.invoke(holder)
-                    true
+                    false
                 }
             }
         }
