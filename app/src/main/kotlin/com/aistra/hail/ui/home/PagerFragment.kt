@@ -176,15 +176,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                 it.name.toString(), query
             ) || PinyinSearch.searchPinyinAll(it.name.toString(), query))
         }
-        val displayList = if (query.isEmpty()) {
-            val order = tag?.second?.let { HailData.getManualAppOrder(it) }.orEmpty()
-            filtered.sortedWith(
-                compareBy<AppInfo> {
-                    val index = order.indexOf(it.packageName)
-                    if (index < 0) Int.MAX_VALUE else index
-                }.thenBy { it.name.toString() }
-            )
-        } else filtered.sortedWith(NameComparator)
+        val displayList = if (query.isEmpty()) filtered else filtered.sortedWith(NameComparator)
         binding.empty.isVisible = displayList.isEmpty()
         if (query.isNotEmpty()) {
             pagerAdapter.dragEnabled = false
