@@ -20,11 +20,11 @@ jobs:
           java-version: '21'
       - name: Build with Gradle
         run: |
-          ./gradlew assembleDebug
-          echo "filename=$(jq -r '.elements.[0].outputFile' app/build/outputs/apk/debug/output-metadata.json)" >> $GITHUB_ENV
+          ./gradlew assembleRelease
+          echo "filename=$(jq -r '.elements.[0].outputFile' app/build/outputs/apk/release/output-metadata.json)" >> $GITHUB_ENV
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v7.0.1
         with:
           name: ${{ env.filename }}
-          path: app/build/outputs/apk/debug/${{ env.filename }}
+          path: app/build/outputs/apk/release/${{ env.filename }}
           archive: false
