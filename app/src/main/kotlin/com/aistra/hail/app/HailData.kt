@@ -251,13 +251,22 @@ object HailData {
     }
 
     fun sortAppsBySavedOrder(tagId: Int, apps: List<AppInfo>): List<AppInfo> {
+        val frozenPositions = apps.indices.filter { apps[it].state == AppInfo.State.FROZEN }
+        if (frozenPositions.size < 2) return apps
         val order = appOrder(tagId)
-        if (order.isEmpty()) return apps.sortedWith(com.aistra.hail.utils.NameComparator)
-        val positions = order.withIndex().associate { it.value to it.index }
-        return apps.sortedWith(
-            compareBy<AppInfo> { positions[it.packageName] ?: Int.MAX_VALUE }
-                .then(com.aistra.hail.utils.NameComparator)
-        )
+        val sortedFrozen = frozenPositions.map { apps[it] }.let { frozen ->
+            if (order.isEmpty()) frozen.sortedWith(com.aistra.hail.utils.NameComparator)
+            else {
+                val positions = order.withIndex().associate { it.value to it.index }
+                frozen.sortedWith(
+                    compareBy<AppInfo> { positions[it.packageName] ?: Int.MAX_VALUE }
+                        .then(com.aistra.hail.utils.NameComparator)
+                )
+            }
+        }
+        val result = apps.toMutableList()
+        frozenPositions.forEachIndexed { index, position -> result[position] = sortedFrozen[index] }
+        return result
     }
 
     fun changeAppsSort(sort: String) = sp.edit { putString(SORT_BY, sort) }
