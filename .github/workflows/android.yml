@@ -18,6 +18,22 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '21'
+      - name: Prepare persistent release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || (echo "Missing GitHub Actions secret SIGNING_KEYSTORE_BASE64" && exit 1)
+          test -n "$SIGNING_STORE_PASSWORD" || (echo "Missing GitHub Actions secret SIGNING_STORE_PASSWORD" && exit 1)
+          test -n "$SIGNING_KEY_ALIAS" || (echo "Missing GitHub Actions secret SIGNING_KEY_ALIAS" && exit 1)
+          test -n "$SIGNING_KEY_PASSWORD" || (echo "Missing GitHub Actions secret SIGNING_KEY_PASSWORD" && exit 1)
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/hail-release.jks"
+          echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/hail-release.jks" >> "$GITHUB_ENV"
+          echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> "$GITHUB_ENV"
       - name: Build with Gradle
         run: |
           ./gradlew assembleRelease
