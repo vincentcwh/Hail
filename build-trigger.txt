@@ -1,0 +1,1 @@
+Hail Plus release build trigger after persistent signing secrets update.
