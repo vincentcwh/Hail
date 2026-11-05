@@ -27,7 +27,7 @@ import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aistra.hail.HailApp.Companion.app
@@ -60,6 +60,9 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
     private val binding get() = _binding!!
     private lateinit var pagerAdapter: PagerAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
+    private var arrangeMode = false
+    private var gridSpanCount = 4
+    private var arrangeMenuItem: MenuItem? = null
     private var multiselect: Boolean
         set(value) {
             (parentFragment as HomeFragment).multiselect = value
@@ -76,12 +79,13 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
         val menuHost = requireActivity() as MenuHost
         menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
         _binding = FragmentPagerBinding.inflate(inflater, container, false)
+        gridSpanCount = resources.getInteger(if (HailData.compactIcon) R.integer.home_span_compact else R.integer.home_span)
         pagerAdapter = PagerAdapter(selectedList).apply {
             onItemClickListener = this@PagerFragment
             onItemLongClickListener = this@PagerFragment
         }
         binding.recyclerView.run {
-            layoutManager = LinearLayoutManager(activity)
+            layoutManager = GridLayoutManager(activity, gridSpanCount)
             adapter = pagerAdapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
@@ -100,11 +104,11 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
         }
 
         itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
-            override fun isLongPressDragEnabled() = false
+            override fun isLongPressDragEnabled() = arrangeMode && query.isEmpty() && !multiselect
             override fun isItemViewSwipeEnabled() = false
 
             override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
-                return if (query.isEmpty() && !multiselect && viewHolder.bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                return if (arrangeMode && query.isEmpty() && !multiselect && viewHolder.bindingAdapterPosition != RecyclerView.NO_POSITION) {
                     makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
                 } else 0
             }
@@ -125,12 +129,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
-                tag?.second?.let { tagId ->
-                    HailData.saveManualAppOrder(
-                        tagId,
-                        pagerAdapter.currentList.map { it.packageName }
-                    )
-                }
+                if (arrangeMode) saveCurrentGridLayout()
             }
         }).also { helper ->
             pagerAdapter.onStartDragListener = { helper.startDrag(it) }
@@ -185,10 +184,53 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                 }.thenBy { it.name.toString() }
             )
         } else filtered.sortedWith(NameComparator)
-        pagerAdapter.dragEnabled = query.isEmpty() && !multiselect
         binding.empty.isVisible = displayList.isEmpty()
-        pagerAdapter.submitList(displayList)
+        if (query.isNotEmpty()) {
+            pagerAdapter.dragEnabled = false
+            pagerAdapter.submitSlots(displayList)
+        } else {
+            val positions = tag?.second?.let { HailData.getManualGridPositions(it) }.orEmpty()
+            val ordered = displayList.sortedWith(
+                compareBy<AppInfo> { positions[it.packageName] ?: Int.MAX_VALUE }
+                    .thenBy { it.name.toString() }
+            )
+            val lastSavedPosition = ordered.mapNotNull { positions[it.packageName] }.maxOrNull() ?: -1
+            val slots = MutableList<AppInfo?>(lastSavedPosition + 1) { null }
+            var appendPosition = slots.size
+            ordered.forEach { info ->
+                val savedPosition = positions[info.packageName]
+                val index = if (savedPosition != null && savedPosition >= 0 && savedPosition !in slots.indices.let { emptyList<Int>() }) savedPosition else -1
+                if (index >= 0) {
+                    while (slots.size <= index) slots.add(null)
+                    slots[index] = info
+                } else {
+                    while (appendPosition < slots.size && slots[appendPosition] != null) appendPosition++
+                    if (appendPosition >= slots.size) slots.add(info) else slots[appendPosition] = info
+                    appendPosition++
+                }
+            }
+            if (arrangeMode) {
+                repeat(gridSpanCount) { slots.add(null) }
+            }
+            pagerAdapter.dragEnabled = arrangeMode && !multiselect
+            pagerAdapter.submitSlots(slots)
+        }
         app.setAutoFreezeService()
+    }
+
+    private fun saveCurrentGridLayout() {
+        tag?.second?.let { tagId ->
+            HailData.saveManualGridPositions(tagId, pagerAdapter.getGridPositions())
+        }
+    }
+
+    private fun setArrangeMode(enabled: Boolean) {
+        if (enabled && (query.isNotEmpty() || multiselect)) return
+        if (arrangeMode == enabled) return
+        if (!enabled) saveCurrentGridLayout()
+        arrangeMode = enabled
+        arrangeMenuItem?.setTitle(if (enabled) R.string.action_arrange_done else R.string.action_arrange)
+        updateCurrentList()
     }
 
     private fun updateBarTitle() {
@@ -604,13 +646,22 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_toggle_arrange -> {
+                setArrangeMode(!arrangeMode)
+            }
+
             R.id.action_multiselect -> {
+                if (arrangeMode) setArrangeMode(false)
                 multiselect = !multiselect
                 item.updateIcon()
                 if (multiselect) {
+                    arrangeMenuItem?.isVisible = false
                     updateBarTitle()
                     HUI.showToast(R.string.tap_to_select)
-                } else deselect()
+                } else {
+                    arrangeMenuItem?.isVisible = query.isEmpty()
+                    deselect()
+                }
             }
 
             R.id.action_freeze_current -> setListFrozen(true, pagerAdapter.currentList.filterNot { it.whitelisted })
@@ -648,6 +699,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             override fun onQueryTextChange(newText: String): Boolean {
                 if (inited) {
                     query = newText
+                    if (query.isNotEmpty() && arrangeMode) setArrangeMode(false)
+                    arrangeMenuItem?.isVisible = query.isEmpty() && !multiselect
                     tabs?.run {
                         isVisible = query.isEmpty() && tabCount > 1
                     }
@@ -659,9 +712,13 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             override fun onQueryTextSubmit(query: String): Boolean = true
         })
         menu.findItem(R.id.action_multiselect).updateIcon()
+        arrangeMenuItem = menu.findItem(R.id.action_toggle_arrange)
+        arrangeMenuItem?.setTitle(if (arrangeMode) R.string.action_arrange_done else R.string.action_arrange)
+        arrangeMenuItem?.isVisible = query.isEmpty() && !multiselect
     }
 
     override fun onDestroyView() {
+        if (arrangeMode) saveCurrentGridLayout()
         activity?.fab?.setOnClickListener(null)
         activity?.fab?.setOnLongClickListener(null)
         pagerAdapter.onDestroy()
