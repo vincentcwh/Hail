@@ -234,27 +234,36 @@ object HailData {
         })
     }
 
-    fun getManualFrozenOrder(tagId: Int): List<String> = runCatching {
-        JSONArray(sp.getString("manual_frozen_order_$tagId", "[]")).let { json ->
+    fun getManualAppOrder(tagId: Int): List<String> = runCatching {
+        val saved = sp.getString("manual_app_order_$tagId", null)
+            ?: sp.getString("manual_frozen_order_$tagId", "[]")
+        JSONArray(saved).let { json ->
             List(json.length()) { index -> json.getString(index) }
         }
     }.getOrDefault(emptyList())
 
-    fun saveManualFrozenOrder(tagId: Int, packages: List<String>) {
-        sp.edit { putString("manual_frozen_order_$tagId", JSONArray(packages).toString()) }
+    fun saveManualAppOrder(tagId: Int, packages: List<String>) {
+        sp.edit {
+            putString("manual_app_order_$tagId", JSONArray(packages).toString())
+            remove("manual_frozen_order_$tagId")
+        }
     }
 
-    fun moveManualFrozenOrder(oldTagId: Int, newTagId: Int) {
+    fun moveManualAppOrder(oldTagId: Int, newTagId: Int) {
         if (oldTagId == newTagId) return
-        val order = getManualFrozenOrder(oldTagId)
+        val order = getManualAppOrder(oldTagId)
         sp.edit {
-            if (order.isNotEmpty()) putString("manual_frozen_order_$newTagId", JSONArray(order).toString())
+            if (order.isNotEmpty()) putString("manual_app_order_$newTagId", JSONArray(order).toString())
+            remove("manual_app_order_$oldTagId")
             remove("manual_frozen_order_$oldTagId")
         }
     }
 
-    fun clearManualFrozenOrder(tagId: Int) {
-        sp.edit { remove("manual_frozen_order_$tagId") }
+    fun clearManualAppOrder(tagId: Int) {
+        sp.edit {
+            remove("manual_app_order_$tagId")
+            remove("manual_frozen_order_$tagId")
+        }
     }
 
     fun changeAppsSort(sort: String) = sp.edit { putString(SORT_BY, sort) }
