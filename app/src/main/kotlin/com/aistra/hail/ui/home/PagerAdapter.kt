@@ -25,6 +25,12 @@ class PagerAdapter(
     private val items = mutableListOf<AppInfo>()
     val currentList: List<AppInfo> get() = items
     var dragEnabled: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyItemRangeChanged(0, itemCount)
+            }
+        }
     var onStartDragListener: ((ViewHolder) -> Unit)? = null
     private var loadIconJob: Job? = null
     lateinit var onItemClickListener: OnItemClickListener
