@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.view.isVisible
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.aistra.hail.R
 import com.aistra.hail.app.AppInfo
@@ -22,13 +21,14 @@ class PagerAdapter(
     private val selectedList: List<AppInfo>,
     private val flags: MutableMap<String, Int> = mutableMapOf()
 ) : RecyclerView.Adapter<PagerAdapter.ViewHolder>() {
-    private val items = mutableListOf<AppInfo>()
-    val currentList: List<AppInfo> get() = items
+    private val slots = mutableListOf<AppInfo?>()
+    val currentList: List<AppInfo> get() = slots.filterNotNull()
+    val slotCount: Int get() = slots.size
     var dragEnabled: Boolean = false
         set(value) {
             if (field != value) {
                 field = value
-                notifyItemRangeChanged(0, itemCount)
+                notifyDataSetChanged()
             }
         }
     var onStartDragListener: ((ViewHolder) -> Unit)? = null
@@ -36,36 +36,28 @@ class PagerAdapter(
     lateinit var onItemClickListener: OnItemClickListener
     lateinit var onItemLongClickListener: OnItemLongClickListener
 
-    init {
-        submitList(selectedList)
-    }
+    init { submitSlots(selectedList) }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int = slots.size
 
-    fun submitList(list: List<AppInfo>) {
-        val oldItems = items.toList()
-        val newItems = list.toList()
-        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-            override fun getOldListSize() = oldItems.size
-            override fun getNewListSize() = newItems.size
-            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int) =
-                oldItems[oldItemPosition] == newItems[newItemPosition]
-            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-                val oldItem = oldItems[oldItemPosition]
-                val newItem = newItems[newItemPosition]
-                return flags[oldItem.packageName] == newItem.getFlag(selectedList)
-            }
-        })
-        items.clear()
-        items.addAll(newItems)
-        diff.dispatchUpdatesTo(this)
+    fun submitSlots(list: List<AppInfo?>) {
+        slots.clear()
+        slots.addAll(list)
+        notifyDataSetChanged()
     }
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
-        if (fromPosition !in items.indices || toPosition !in items.indices) return
-        val item = items.removeAt(fromPosition)
-        items.add(toPosition, item)
+        if (fromPosition !in slots.indices || toPosition !in slots.indices) return
+        val moving = slots[fromPosition] ?: return
+        val target = slots[toPosition]
+        slots[toPosition] = moving
+        slots[fromPosition] = target
         notifyItemMoved(fromPosition, toPosition)
+        if (target != null) notifyItemChanged(fromPosition)
+    }
+
+    fun getGridPositions(): Map<String, Int> = buildMap {
+        slots.forEachIndexed { index, info -> if (info != null) put(info.packageName, index) }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder = ViewHolder(
@@ -73,18 +65,31 @@ class PagerAdapter(
     )
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val info = items[position]
-        flags[info.packageName] = info.getFlag(selectedList)
+        val info = slots[position]
         holder.itemView.run {
-            setOnClickListener { onItemClickListener.onItemClick(info) }
-            setOnLongClickListener { onItemLongClickListener.onItemLongClick(info) }
+            if (info == null) {
+                alpha = if (dragEnabled) 0.22f else 0f
+                isClickable = false
+                setOnClickListener(null)
+                setOnLongClickListener(null)
+                findViewById<ImageView>(R.id.app_icon).isVisible = false
+                findViewById<TextView>(R.id.app_name).isVisible = false
+                return
+            }
+            alpha = 1f
+            isClickable = true
+            setOnClickListener { if (!dragEnabled) onItemClickListener.onItemClick(info) }
+            setOnLongClickListener {
+                if (dragEnabled) {
+                    onStartDragListener?.invoke(holder)
+                    true
+                } else onItemLongClickListener.onItemLongClick(info)
+            }
             findViewById<ImageView>(R.id.app_icon).run {
+                isVisible = true
                 info.applicationInfo?.let {
                     loadIconJob = AppIconCache.loadIconBitmapAsync(
-                        context,
-                        it,
-                        myUserId,
-                        this,
+                        context, it, myUserId, this,
                         HailData.grayscaleIcon && info.state == AppInfo.State.FROZEN
                     )
                 } ?: run {
@@ -93,6 +98,7 @@ class PagerAdapter(
                 }
             }
             findViewById<TextView>(R.id.app_name).run {
+                isVisible = true
                 text = buildString {
                     if (!HailData.grayscaleIcon && info.state == AppInfo.State.FROZEN) append("\u2744\uFE0F")
                     if (info.whitelisted) append("\uD83D\uDD12")
@@ -100,22 +106,11 @@ class PagerAdapter(
                 }
                 isEnabled = !HailData.grayscaleIcon || info.state != AppInfo.State.FROZEN
                 when {
-                    info in selectedList -> setTextColor(
-                        MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary)
-                    )
-                    info.state == AppInfo.State.NOT_FOUND -> setTextColor(
-                        MaterialColors.getColor(this, androidx.appcompat.R.attr.colorError)
-                    )
+                    info in selectedList -> setTextColor(MaterialColors.getColor(this, androidx.appcompat.R.attr.colorPrimary))
+                    info.state == AppInfo.State.NOT_FOUND -> setTextColor(MaterialColors.getColor(this, androidx.appcompat.R.attr.colorError))
                     else -> setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
                 }
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, HailData.homeFontSize)
-            }
-            findViewById<TextView>(R.id.drag_handle).run {
-                isVisible = dragEnabled
-                setOnTouchListener { _, event ->
-                    if (event.actionMasked == MotionEvent.ACTION_DOWN) onStartDragListener?.invoke(holder)
-                    false
-                }
             }
         }
     }
@@ -125,14 +120,8 @@ class PagerAdapter(
     }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view)
-
-    interface OnItemClickListener {
-        fun onItemClick(info: AppInfo)
-    }
-
-    interface OnItemLongClickListener {
-        fun onItemLongClick(info: AppInfo): Boolean
-    }
+    interface OnItemClickListener { fun onItemClick(info: AppInfo) }
+    interface OnItemLongClickListener { fun onItemLongClick(info: AppInfo): Boolean }
 }
 
 private fun AppInfo.getFlag(selectedList: List<AppInfo>) =
