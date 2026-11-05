@@ -167,6 +167,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
     }
 
     private fun updateCurrentList() {
+        if (arrangeMode) saveCurrentGridLayout()
         val filtered = HailData.checkedList.filter {
             if (query.isEmpty()) tag?.second?.let { tagId -> tagId in it.tagIdList } ?: false
             else ((HailData.nineKeySearch && NineKeySearch.search(
@@ -199,7 +200,9 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             var appendPosition = slots.size
             ordered.forEach { info ->
                 val savedPosition = positions[info.packageName]
-                val index = if (savedPosition != null && savedPosition >= 0 && savedPosition !in slots.indices.let { emptyList<Int>() }) savedPosition else -1
+                val index = if (savedPosition != null && savedPosition >= 0 && savedPosition < 10000 &&
+                    (savedPosition >= slots.size || slots[savedPosition] == null)
+                ) savedPosition else -1
                 if (index >= 0) {
                     while (slots.size <= index) slots.add(null)
                     slots[index] = info
