@@ -32,6 +32,7 @@ object HailData {
     const val KEY_PACKAGE = "package"
     const val KEY_FROZEN = "frozen"
     private const val SORT_BY = "sort_by"
+    private const val APP_ORDER_BY_TAG = "app_order_by_tag"
     const val SORT_NAME = "name"
     const val SORT_INSTALL = "install"
     const val SORT_UPDATE = "update"
@@ -232,6 +233,31 @@ object HailData {
             }
             toString()
         })
+    }
+
+
+    fun appOrder(tagId: Int): List<String> = runCatching {
+        val root = JSONObject(sp.getString(APP_ORDER_BY_TAG, "{}") ?: "{}")
+        val array = root.optJSONArray(tagId.toString()) ?: JSONArray()
+        List(array.length()) { index -> array.getString(index) }
+    }.getOrDefault(emptyList())
+
+    fun saveAppOrder(tagId: Int, packageNames: List<String>) {
+        val root = runCatching {
+            JSONObject(sp.getString(APP_ORDER_BY_TAG, "{}") ?: "{}")
+        }.getOrDefault(JSONObject())
+        root.put(tagId.toString(), JSONArray(packageNames))
+        sp.edit { putString(APP_ORDER_BY_TAG, root.toString()) }
+    }
+
+    fun sortAppsBySavedOrder(tagId: Int, apps: List<AppInfo>): List<AppInfo> {
+        val order = appOrder(tagId)
+        if (order.isEmpty()) return apps.sortedWith(com.aistra.hail.utils.NameComparator)
+        val positions = order.withIndex().associate { it.value to it.index }
+        return apps.sortedWith(
+            compareBy<AppInfo> { positions[it.packageName] ?: Int.MAX_VALUE }
+                .then(com.aistra.hail.utils.NameComparator)
+        )
     }
 
     fun changeAppsSort(sort: String) = sp.edit { putString(SORT_BY, sort) }
