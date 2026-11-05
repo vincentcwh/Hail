@@ -234,6 +234,29 @@ object HailData {
         })
     }
 
+    fun getManualFrozenOrder(tagId: Int): List<String> = runCatching {
+        JSONArray(sp.getString("manual_frozen_order_$tagId", "[]")).let { json ->
+            List(json.length()) { index -> json.getString(index) }
+        }
+    }.getOrDefault(emptyList())
+
+    fun saveManualFrozenOrder(tagId: Int, packages: List<String>) {
+        sp.edit { putString("manual_frozen_order_$tagId", JSONArray(packages).toString()) }
+    }
+
+    fun moveManualFrozenOrder(oldTagId: Int, newTagId: Int) {
+        if (oldTagId == newTagId) return
+        val order = getManualFrozenOrder(oldTagId)
+        sp.edit {
+            if (order.isNotEmpty()) putString("manual_frozen_order_$newTagId", JSONArray(order).toString())
+            remove("manual_frozen_order_$oldTagId")
+        }
+    }
+
+    fun clearManualFrozenOrder(tagId: Int) {
+        sp.edit { remove("manual_frozen_order_$tagId") }
+    }
+
     fun changeAppsSort(sort: String) = sp.edit { putString(SORT_BY, sort) }
 
     fun changeAppsFilter(filter: String, enabled: Boolean) = sp.edit { putBoolean(filter, enabled) }
