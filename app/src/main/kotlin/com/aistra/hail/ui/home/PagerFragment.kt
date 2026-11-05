@@ -90,8 +90,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
             val dragHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
                 override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) =
                     makeMovementFlags(
-                        if (canReorder()) ItemTouchHelper.UP or ItemTouchHelper.DOWN or
-                            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT else 0,
+                        if (canReorder() && pagerAdapter.currentList.getOrNull(viewHolder.bindingAdapterPosition)?.state == AppInfo.State.FROZEN)
+                            ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT else 0,
                         0
                     )
 
@@ -99,9 +99,15 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                     recyclerView: RecyclerView,
                     source: RecyclerView.ViewHolder,
                     target: RecyclerView.ViewHolder
-                ): Boolean = canReorder() && pagerAdapter.moveItem(
-                    source.bindingAdapterPosition, target.bindingAdapterPosition
-                )
+                ): Boolean {
+                    val from = source.bindingAdapterPosition
+                    val to = target.bindingAdapterPosition
+                    val items = pagerAdapter.currentList
+                    return canReorder() &&
+                        items.getOrNull(from)?.state == AppInfo.State.FROZEN &&
+                        items.getOrNull(to)?.state == AppInfo.State.FROZEN &&
+                        pagerAdapter.moveItem(from, to)
+                }
 
                 override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
                 override fun isLongPressDragEnabled() = false
