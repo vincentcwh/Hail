@@ -28,6 +28,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aistra.hail.HailApp.Companion.app
 import com.aistra.hail.R
@@ -58,6 +59,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
     private var _binding: FragmentPagerBinding? = null
     private val binding get() = _binding!!
     private lateinit var pagerAdapter: PagerAdapter
+    private var draggedTagId: Int? = null
     private var multiselect: Boolean
         set(value) {
             (parentFragment as HomeFragment).multiselect = value
@@ -85,6 +87,47 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
                 )
             )
             adapter = pagerAdapter
+            val dragHelper = ItemTouchHelper(object : ItemTouchHelper.Callback() {
+                override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) =
+                    makeMovementFlags(
+                        if (canReorder()) ItemTouchHelper.UP or ItemTouchHelper.DOWN or
+                            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT else 0,
+                        0
+                    )
+
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    source: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean = canReorder() && pagerAdapter.moveItem(
+                    source.bindingAdapterPosition, target.bindingAdapterPosition
+                )
+
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
+                override fun isLongPressDragEnabled() = false
+                override fun isItemViewSwipeEnabled() = false
+
+                override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                    super.onSelectedChanged(viewHolder, actionState)
+                    if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                        pagerAdapter.beginDrag()
+                        draggedTagId = tag?.second
+                    }
+                }
+
+                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                    super.clearView(recyclerView, viewHolder)
+                    draggedTagId?.let { tagId ->
+                        HailData.saveAppOrder(tagId, pagerAdapter.orderedItems().map { it.packageName })
+                    }
+                    pagerAdapter.endDrag()
+                    draggedTagId = null
+                }
+            })
+            dragHelper.attachToRecyclerView(this)
+            pagerAdapter.onDragStartListener = { holder ->
+                if (canReorder()) dragHelper.startDrag(holder)
+            }
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     super.onScrollStateChanged(recyclerView, newState)
@@ -131,6 +174,8 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
         }
     }
 
+    private fun canReorder() = query.isEmpty() && !multiselect && tag != null
+
     private fun updateCurrentList() = HailData.checkedList.filter {
         if (query.isEmpty()) tag?.second?.let { tagId -> tagId in it.tagIdList } ?: false
         else ((HailData.nineKeySearch && NineKeySearch.search(
@@ -138,9 +183,13 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
         )) || FuzzySearch.search(it.packageName, query) || FuzzySearch.search(
             it.name.toString(), query
         ) || PinyinSearch.searchPinyinAll(it.name.toString(), query))
-    }.sortedWith(NameComparator).let {
-        binding.empty.isVisible = it.isEmpty()
-        pagerAdapter.submitList(it)
+    }.let { list ->
+        val visibleList = if (query.isEmpty()) {
+            HailData.sortAppsBySavedOrder(tag?.second ?: 0, list)
+        } else list.sortedWith(NameComparator)
+        pagerAdapter.dragEnabled = canReorder()
+        binding.empty.isVisible = visibleList.isEmpty()
+        pagerAdapter.submitList(visibleList)
         app.setAutoFreezeService()
     }
 
