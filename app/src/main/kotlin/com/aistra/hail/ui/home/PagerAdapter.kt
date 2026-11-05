@@ -72,8 +72,8 @@ class PagerAdapter(
                 isClickable = false
                 setOnClickListener(null)
                 setOnLongClickListener(null)
-                findViewById<ImageView>(R.id.app_icon).isVisible = false
-                findViewById<TextView>(R.id.app_name).isVisible = false
+                findViewById<ImageView>(R.id.app_icon).visibility = View.INVISIBLE
+                findViewById<TextView>(R.id.app_name).visibility = View.INVISIBLE
                 return
             }
             alpha = 1f
