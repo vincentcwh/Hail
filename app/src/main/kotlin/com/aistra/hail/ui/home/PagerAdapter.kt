@@ -52,8 +52,8 @@ class PagerAdapter(
         val target = slots[toPosition]
         slots[toPosition] = moving
         slots[fromPosition] = target
-        notifyItemMoved(fromPosition, toPosition)
-        if (target != null) notifyItemChanged(fromPosition)
+        notifyItemChanged(fromPosition)
+        notifyItemChanged(toPosition)
     }
 
     fun getGridPositions(): Map<String, Int> = buildMap {
