@@ -109,7 +109,7 @@ class PagerFragment : MainFragment(), PagerAdapter.OnItemClickListener, PagerAda
 
             override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
                 return if (arrangeMode && query.isEmpty() && !multiselect && viewHolder.bindingAdapterPosition != RecyclerView.NO_POSITION) {
-                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT, 0)
                 } else 0
             }
 
