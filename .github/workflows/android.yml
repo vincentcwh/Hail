@@ -34,6 +34,21 @@ jobs:
           echo "SIGNING_STORE_PASSWORD=$SIGNING_STORE_PASSWORD" >> "$GITHUB_ENV"
           echo "SIGNING_KEY_ALIAS=$SIGNING_KEY_ALIAS" >> "$GITHUB_ENV"
           echo "SIGNING_KEY_PASSWORD=$SIGNING_KEY_PASSWORD" >> "$GITHUB_ENV"
+      - name: Validate persistent signing credentials
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          keytool -list -keystore "$RUNNER_TEMP/hail-release.jks" -storepass "$SIGNING_STORE_PASSWORD" -alias "$SIGNING_KEY_ALIAS" >/dev/null 2>&1 || {
+            echo "::error::Signing keystore password or key alias is incorrect. Check SIGNING_STORE_PASSWORD and SIGNING_KEY_ALIAS."
+            exit 1
+          }
+          keytool -certreq -keystore "$RUNNER_TEMP/hail-release.jks" -storepass "$SIGNING_STORE_PASSWORD" -keypass "$SIGNING_KEY_PASSWORD" -alias "$SIGNING_KEY_ALIAS" -file "$RUNNER_TEMP/hail-key-check.csr" >/dev/null 2>&1 || {
+            echo "::error::Private-key password is incorrect. Check SIGNING_KEY_PASSWORD."
+            exit 1
+          }
+          rm -f "$RUNNER_TEMP/hail-key-check.csr"
       - name: Build with Gradle
         run: |
           ./gradlew assembleRelease
