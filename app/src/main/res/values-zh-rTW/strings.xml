@@ -155,4 +155,6 @@
     <string name="state_suspended">已暫停</string>
     <string name="donate_kofi">Ko-fi</string>
     <string name="state_uninstalled">已解除安裝</string>
+    <string name="action_arrange">排列</string>
+    <string name="action_arrange_done">完成</string>
 </resources>
