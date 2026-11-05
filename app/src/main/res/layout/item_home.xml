@@ -17,6 +17,16 @@
             android:padding="@dimen/padding_small"/>
 
     <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/drag_handle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="Reorder frozen app"
+            android:paddingHorizontal="8dp"
+            android:text="⠿"
+            android:textSize="18sp"
+            android:visibility="gone"/>
+
+    <com.google.android.material.textview.MaterialTextView
             android:id="@+id/app_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
