@@ -234,26 +234,45 @@ object HailData {
         })
     }
 
-    fun getManualAppOrder(tagId: Int): List<String> = runCatching {
-        val saved = sp.getString("manual_app_order_$tagId", null)
-            ?: sp.getString("manual_frozen_order_$tagId", "[]")
-        JSONArray(saved).let { json ->
-            List(json.length()) { index -> json.getString(index) }
+    fun getManualGridPositions(tagId: Int): Map<String, Int> = runCatching {
+        val grid = sp.getString("manual_grid_positions_$tagId", null)
+        if (grid != null) {
+            val json = JSONObject(grid)
+            buildMap {
+                val keys = json.keys()
+                while (keys.hasNext()) {
+                    val packageName = keys.next()
+                    put(packageName, json.getInt(packageName))
+                }
+            }
+        } else {
+            val legacy = sp.getString("manual_app_order_$tagId", null)
+                ?: sp.getString("manual_frozen_order_$tagId", "[]")
+            val json = JSONArray(legacy)
+            buildMap {
+                for (index in 0 until json.length()) put(json.getString(index), index)
+            }
         }
-    }.getOrDefault(emptyList())
+    }.getOrDefault(emptyMap())
 
-    fun saveManualAppOrder(tagId: Int, packages: List<String>) {
+    fun saveManualGridPositions(tagId: Int, positions: Map<String, Int>) {
         sp.edit {
-            putString("manual_app_order_$tagId", JSONArray(packages).toString())
+            putString("manual_grid_positions_$tagId", JSONObject().apply {
+                positions.forEach { (packageName, position) -> put(packageName, position) }
+            }.toString())
+            remove("manual_app_order_$tagId")
             remove("manual_frozen_order_$tagId")
         }
     }
 
     fun moveManualAppOrder(oldTagId: Int, newTagId: Int) {
         if (oldTagId == newTagId) return
-        val order = getManualAppOrder(oldTagId)
+        val positions = getManualGridPositions(oldTagId)
         sp.edit {
-            if (order.isNotEmpty()) putString("manual_app_order_$newTagId", JSONArray(order).toString())
+            if (positions.isNotEmpty()) putString("manual_grid_positions_$newTagId", JSONObject().apply {
+                positions.forEach { (packageName, position) -> put(packageName, position) }
+            }.toString())
+            remove("manual_grid_positions_$oldTagId")
             remove("manual_app_order_$oldTagId")
             remove("manual_frozen_order_$oldTagId")
         }
@@ -261,6 +280,7 @@ object HailData {
 
     fun clearManualAppOrder(tagId: Int) {
         sp.edit {
+            remove("manual_grid_positions_$tagId")
             remove("manual_app_order_$tagId")
             remove("manual_frozen_order_$tagId")
         }
