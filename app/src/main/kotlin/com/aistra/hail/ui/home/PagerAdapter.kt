@@ -60,9 +60,9 @@ class PagerAdapter(
             setOnClickListener { onItemClickListener.onItemClick(info) }
             setOnLongClickListener { onItemLongClickListener.onItemLongClick(info) }
             findViewById<View>(R.id.drag_handle).apply {
-                isVisible = dragEnabled
+                isVisible = dragEnabled && info.state == AppInfo.State.FROZEN
                 setOnTouchListener { _, event ->
-                    if (dragEnabled && event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    if (dragEnabled && info.state == AppInfo.State.FROZEN && event.actionMasked == MotionEvent.ACTION_DOWN) {
                         onDragStartListener?.invoke(holder)
                         true
                     } else false
