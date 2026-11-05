@@ -2,8 +2,10 @@ package com.aistra.hail.ui.home
 
 import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -22,6 +24,28 @@ class PagerAdapter(
     private val flags: MutableMap<String, Int> = mutableMapOf()
 ) : ListAdapter<AppInfo, PagerAdapter.ViewHolder>(HomeDiff(selectedList, flags)) {
     private var loadIconJob: Job? = null
+    var dragEnabled: Boolean = false
+    var onDragStartListener: ((RecyclerView.ViewHolder) -> Unit)? = null
+    private var dragItems: MutableList<AppInfo>? = null
+
+    fun beginDrag() {
+        dragItems = currentList.toMutableList()
+    }
+
+    fun moveItem(from: Int, to: Int): Boolean {
+        val items = dragItems ?: return false
+        if (from !in items.indices || to !in items.indices) return false
+        val item = items.removeAt(from)
+        items.add(to, item)
+        submitList(items.toList())
+        return true
+    }
+
+    fun orderedItems(): List<AppInfo> = dragItems ?: currentList
+
+    fun endDrag() {
+        dragItems = null
+    }
     lateinit var onItemClickListener: OnItemClickListener
     lateinit var onItemLongClickListener: OnItemLongClickListener
 
@@ -35,6 +59,15 @@ class PagerAdapter(
         holder.itemView.run {
             setOnClickListener { onItemClickListener.onItemClick(info) }
             setOnLongClickListener { onItemLongClickListener.onItemLongClick(info) }
+            findViewById<View>(R.id.drag_handle).apply {
+                isVisible = dragEnabled
+                setOnTouchListener { _, event ->
+                    if (dragEnabled && event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        onDragStartListener?.invoke(holder)
+                        true
+                    } else false
+                }
+            }
             findViewById<ImageView>(R.id.app_icon).run {
                 info.applicationInfo?.let {
                     loadIconJob = AppIconCache.loadIconBitmapAsync(
