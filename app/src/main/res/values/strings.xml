@@ -172,4 +172,5 @@
     <string name="clone_no_apps">No third-party apps found for this user.</string>
     <string name="clone_invalid_user">Invalid user. User 0 cannot be managed here.</string>
     <string name="action_refresh">Refresh</string>
+    <string name="clone_shizuku_permission">Requesting Shizuku permission…</string>
 </resources>
