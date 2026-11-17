@@ -18,17 +18,7 @@ object AppManager {
             }
         }
 
-    fun isAppFrozen(packageName: String): Boolean = CloneUserManager.isAppFrozen(packageName) || with(HailData.workingMode) {
-        when {
-            endsWith(HailData.STOP) -> HPackages.isAppStopped(packageName)
-            endsWith(HailData.DISABLE) -> HPackages.isAppDisabled(packageName)
-            endsWith(HailData.HIDE) -> HPackages.isAppHidden(packageName)
-            endsWith(HailData.SUSPEND) -> HPackages.isAppSuspended(packageName)
-            else -> HPackages.isAppDisabled(packageName)
-                    || HPackages.isAppHidden(packageName)
-                    || HPackages.isAppSuspended(packageName)
-        }
-    }
+    fun isAppFrozen(packageName: String): Boolean = CloneUserManager.isAppFrozen(packageName)
 
     fun setListFrozen(frozen: Boolean, vararg appInfo: AppInfo): String? {
         val excludeMe = appInfo.filter { it.packageName != BuildConfig.APPLICATION_ID }
@@ -55,28 +45,7 @@ object AppManager {
     }
 
     fun setAppFrozen(packageName: String, frozen: Boolean): Boolean =
-        packageName != BuildConfig.APPLICATION_ID && CloneUserManager.setAppFrozen(packageName, frozen) ||
-            packageName != BuildConfig.APPLICATION_ID && when (HailData.workingMode) {
-            HailData.MODE_OWNER_HIDE -> HPolicy.setAppHidden(packageName, frozen)
-            HailData.MODE_OWNER_SUSPEND -> HPolicy.setAppSuspended(packageName, frozen)
-            HailData.MODE_DHIZUKU_HIDE -> HDhizuku.setAppHidden(packageName, frozen)
-            HailData.MODE_DHIZUKU_SUSPEND -> HDhizuku.setAppSuspended(packageName, frozen)
-            HailData.MODE_SU_STOP -> !frozen || HShell.forceStopApp(packageName)
-            HailData.MODE_SU_DISABLE -> HShell.setAppDisabled(packageName, frozen)
-            HailData.MODE_SU_HIDE -> HShell.setAppHidden(packageName, frozen)
-            HailData.MODE_SU_SUSPEND -> HShell.setAppSuspended(packageName, frozen)
-            HailData.MODE_SHIZUKU_STOP -> !frozen || HShizuku.forceStopApp(packageName)
-            HailData.MODE_SHIZUKU_DISABLE -> HShizuku.setAppDisabled(packageName, frozen)
-            HailData.MODE_SHIZUKU_HIDE -> HShizuku.setAppHidden(packageName, frozen)
-            HailData.MODE_SHIZUKU_SUSPEND -> HShizuku.setAppSuspended(packageName, frozen)
-            HailData.MODE_ISLAND_HIDE -> HIsland.setAppHidden(packageName, frozen)
-            HailData.MODE_ISLAND_SUSPEND -> HIsland.setAppSuspended(packageName, frozen)
-            HailData.MODE_PRIVAPP_STOP -> !frozen || HPackages.forceStopApp(packageName)
-            HailData.MODE_JAILBREAK_DISABLE, HailData.MODE_PRIVAPP_DISABLE ->
-                HPackages.setAppDisabled(packageName, frozen)
-
-            else -> false
-        }
+        packageName != BuildConfig.APPLICATION_ID && CloneUserManager.setAppFrozen(packageName, frozen)
 
     fun uninstallApp(packageName: String): Boolean = with(HailData.workingMode) {
         if (
