@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hail Plus</string>
+    <string name="app_name">Hail Duo</string>
     <string name="app_slogan">實現凍結自由！</string>
     <string name="title_home">首頁</string>
     <string name="title_apps">應用程式</string>
@@ -155,6 +155,4 @@
     <string name="state_suspended">已暫停</string>
     <string name="donate_kofi">Ko-fi</string>
     <string name="state_uninstalled">已解除安裝</string>
-    <string name="action_arrange">排列</string>
-    <string name="action_arrange_done">完成</string>
 </resources>
