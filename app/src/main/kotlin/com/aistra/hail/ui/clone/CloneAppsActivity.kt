@@ -13,7 +13,6 @@ import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import com.aistra.hail.R
 import com.aistra.hail.utils.HShizuku
@@ -68,7 +67,7 @@ class CloneAppsActivity : AppCompatActivity() {
     private fun buildContent() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20))
+            setPadding(dp(20), dp(20), dp(20), dp(20))
         }
         val description = TextView(this).apply {
             text = getString(R.string.clone_apps_description)
@@ -134,6 +133,7 @@ class CloneAppsActivity : AppCompatActivity() {
         refreshButton.isEnabled = false
         statusText.text = getString(R.string.clone_loading_users)
         lifecycleScope.launch {
+            var shouldLoadApps = false
             try {
                 val output = shell("pm list users")
                 val found = USER_PATTERN.findAll(output).mapNotNull {
@@ -160,7 +160,7 @@ class CloneAppsActivity : AppCompatActivity() {
                     userSpinner.setSelection(selected, false)
                     selectedUserId = found[selected].id
                     suppressSpinnerCallback = false
-                    refreshApps()
+                    shouldLoadApps = true
                 }
             } catch (e: Exception) {
                 statusText.text = getString(R.string.operation_failed, e.message ?: "Shizuku")
@@ -168,6 +168,7 @@ class CloneAppsActivity : AppCompatActivity() {
                 loading = false
                 refreshButton.isEnabled = true
             }
+            if (shouldLoadApps) refreshApps()
         }
     }
 
@@ -198,7 +199,7 @@ class CloneAppsActivity : AppCompatActivity() {
                     val empty = TextView(this@CloneAppsActivity).apply {
                         text = getString(R.string.clone_no_apps)
                         textSize = 14f
-                        setPadding(dp(12))
+                        setPadding(dp(12), dp(12), dp(12), dp(12))
                     }
                     appContainer.addView(empty)
                 }
@@ -254,19 +255,20 @@ class CloneAppsActivity : AppCompatActivity() {
         loading = true
         refreshButton.isEnabled = false
         lifecycleScope.launch {
+            var succeeded = false
             try {
                 val command = if (freeze) {
                     "am force-stop --user $userId $packageName && pm disable-user --user $userId $packageName"
                 } else {
                     "pm default-state --user $userId $packageName"
                 }
-                val output = shell(command)
+                shell(command)
                 Toast.makeText(
                     this@CloneAppsActivity,
                     getString(if (freeze) R.string.clone_frozen else R.string.clone_unfrozen, packageName),
                     Toast.LENGTH_SHORT
                 ).show()
-                refreshApps()
+                succeeded = true
             } catch (e: Exception) {
                 Toast.makeText(
                     this@CloneAppsActivity,
@@ -277,12 +279,13 @@ class CloneAppsActivity : AppCompatActivity() {
                 loading = false
                 refreshButton.isEnabled = true
             }
+            if (succeeded) refreshApps()
         }
     }
 
     private suspend fun shell(command: String): String = withContext(Dispatchers.IO) {
         val (code, output) = HShizuku.execute(command)
-        if (code != 0) throw IllegalStateException(output?.ifBlank { null } ?: "exit=$code")
+        if (code != 0) throw IllegalStateException(output?.takeIf { it.isNotBlank() } ?: "exit=$code")
         output.orEmpty()
     }
 
