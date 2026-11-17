@@ -159,4 +159,19 @@
     <string name="state_suspended">Suspended</string>
     <string name="state_uninstalled">Uninstalled</string>
     <string name="mode_jailbreak_disable">Jailbreak - Disable</string>
+    <string name="title_clone_apps">Clone apps</string>
+    <string name="clone_apps_description">Disable or restore apps for a selected Android user. Owner user 0 is excluded.</string>
+    <string name="clone_shizuku_missing">Shizuku is not running.</string>
+    <string name="clone_shizuku_permission">Requesting Shizuku permission…</string>
+    <string name="clone_shizuku_denied">Shizuku permission was denied.</string>
+    <string name="clone_loading_users">Reading Android users…</string>
+    <string name="clone_loading_apps">Reading clone apps…</string>
+    <string name="clone_no_users">No secondary users found. Owner user 0 is excluded.</string>
+    <string name="clone_invalid_user">Invalid user. User 0 cannot be managed here.</string>
+    <string name="clone_app_count">User %1$d: %2$d third-party apps</string>
+    <string name="clone_no_apps">No third-party apps found for this user.</string>
+    <string name="clone_operation_blocked">Operation blocked by safety checks.</string>
+    <string name="clone_frozen">Clone disabled: %s</string>
+    <string name="clone_unfrozen">Clone restored: %s</string>
+    <string name="action_refresh">Refresh</string>
 </resources>

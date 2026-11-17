@@ -40,6 +40,9 @@
             android:theme="@style/Theme.Hail"
             tools:targetApi="tiramisu">
         <activity
+                android:name=".ui.clone.CloneAppsActivity"
+                android:exported="false" />
+        <activity
                 android:name=".ui.main.MainActivity"
                 android:exported="true"
                 android:launchMode="singleTask">

@@ -158,4 +158,19 @@
     <string name="mode_jailbreak_disable">越狱 - 停用</string>
     <string name="action_arrange">排列</string>
     <string name="action_arrange_done">完成</string>
+    <string name="title_clone_apps">分身应用</string>
+    <string name="clone_apps_description">按 Android 用户空间独立停用/恢复应用。仅操作所选分身用户，不会修改主用户 0。</string>
+    <string name="clone_shizuku_missing">未检测到 Shizuku，请先启动 Shizuku。</string>
+    <string name="clone_shizuku_permission">正在请求 Shizuku 权限…</string>
+    <string name="clone_shizuku_denied">Shizuku 权限未授予。</string>
+    <string name="clone_loading_users">正在读取 Android 用户空间…</string>
+    <string name="clone_loading_apps">正在读取分身应用…</string>
+    <string name="clone_no_users">没有发现可管理的分身用户（User ID 0 已排除）。</string>
+    <string name="clone_invalid_user">无效用户。为安全起见，不允许操作 User 0。</string>
+    <string name="clone_app_count">User %1$d：发现 %2$d 个第三方应用</string>
+    <string name="clone_no_apps">该用户空间没有发现第三方应用。</string>
+    <string name="clone_operation_blocked">操作已阻止：用户或应用标识不符合安全条件。</string>
+    <string name="clone_frozen">已停用分身：%s</string>
+    <string name="clone_unfrozen">已恢复分身：%s</string>
+    <string name="action_refresh">刷新</string>
 </resources>

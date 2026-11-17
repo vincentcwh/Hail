@@ -33,7 +33,12 @@
                         android:id="@+id/filter_unfrozen_apps"
                         android:title="@string/filter_unfrozen_apps"/>
             </group>
-        </menu>
+            <item
+        android:id="@+id/action_clone_apps"
+        android:icon="@drawable/ic_baseline_android"
+        android:title="@string/title_clone_apps"
+        app:showAsAction="ifRoom" />
+</menu>
     </item>
     <item
             android:icon="@drawable/ic_outline_sort"

@@ -1,5 +1,6 @@
 package com.aistra.hail.ui.apps
 
+import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.text.InputType
@@ -21,6 +22,7 @@ import com.aistra.hail.app.HailData
 import com.aistra.hail.databinding.FragmentAppsBinding
 import com.aistra.hail.extensions.*
 import com.aistra.hail.ui.main.MainFragment
+import com.aistra.hail.ui.clone.CloneAppsActivity
 import com.aistra.hail.utils.HFiles
 import com.aistra.hail.utils.HPackages
 import com.aistra.hail.utils.HPolicy
@@ -241,6 +243,7 @@ class AppsFragment : MainFragment(), AppsAdapter.OnItemClickListener, AppsAdapte
 
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
+            R.id.action_clone_apps -> startActivity(Intent(activity, CloneAppsActivity::class.java))
             R.id.sort_by_name -> changeAppsSort(HailData.SORT_NAME, item)
             R.id.sort_by_install -> changeAppsSort(HailData.SORT_INSTALL, item)
             R.id.sort_by_update -> changeAppsSort(HailData.SORT_UPDATE, item)
