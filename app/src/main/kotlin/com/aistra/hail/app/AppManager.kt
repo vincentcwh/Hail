@@ -18,7 +18,7 @@ object AppManager {
             }
         }
 
-    fun isAppFrozen(packageName: String): Boolean = with(HailData.workingMode) {
+    fun isAppFrozen(packageName: String): Boolean = CloneUserManager.isAppFrozen(packageName) || with(HailData.workingMode) {
         when {
             endsWith(HailData.STOP) -> HPackages.isAppStopped(packageName)
             endsWith(HailData.DISABLE) -> HPackages.isAppDisabled(packageName)
@@ -55,7 +55,8 @@ object AppManager {
     }
 
     fun setAppFrozen(packageName: String, frozen: Boolean): Boolean =
-        packageName != BuildConfig.APPLICATION_ID && when (HailData.workingMode) {
+        packageName != BuildConfig.APPLICATION_ID && CloneUserManager.setAppFrozen(packageName, frozen) ||
+            packageName != BuildConfig.APPLICATION_ID && when (HailData.workingMode) {
             HailData.MODE_OWNER_HIDE -> HPolicy.setAppHidden(packageName, frozen)
             HailData.MODE_OWNER_SUSPEND -> HPolicy.setAppSuspended(packageName, frozen)
             HailData.MODE_DHIZUKU_HIDE -> HDhizuku.setAppHidden(packageName, frozen)
