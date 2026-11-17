@@ -83,7 +83,7 @@ class CloneAppsFragment : MainFragment() {
                         .filter { PACKAGE_REGEX.matches(it) && it != requireContext().packageName }
                         .distinct().mapNotNull { pkg ->
                             runCatching { pm.getApplicationInfo(pkg, 0) }.getOrNull()?.let(::CloneAppItem)
-                        }.sortedBy { it.applicationInfo.loadLabel(pm).toString().lowercase() }
+                        }.sortedBy { it.applicationInfo.loadLabel(pm).toString().lowercase() }.toList()
                     userId to items
                 }
                 adapter.submitList(result.second)
