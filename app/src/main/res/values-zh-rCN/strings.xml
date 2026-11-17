@@ -170,4 +170,5 @@
     <string name="clone_no_apps">该分身用户中没有发现第三方应用。</string>
     <string name="clone_invalid_user">无效用户。为安全起见，不允许操作 User 0。</string>
     <string name="action_refresh">刷新</string>
+    <string name="clone_shizuku_permission">正在请求 Shizuku 权限…</string>
 </resources>
