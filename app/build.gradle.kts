@@ -75,7 +75,7 @@ androidComponents {
     onVariants { variant ->
         variant.outputs.forEach {
             if (it is com.android.build.api.variant.impl.VariantOutputImpl)
-                it.outputFileName = "Hail-v${it.versionName.get()}.apk"
+                it.outputFileName = "Hail-Duo-v${it.versionName.get()}.apk"
         }
     }
 }
