@@ -162,4 +162,12 @@
     <string name="clone_operation_blocked">操作已阻止：用户或应用标识不符合安全条件。</string>
     <string name="clone_frozen">已停用分身：%s</string>
     <string name="clone_unfrozen">已恢复分身：%s</string>
+    <string name="title_clone_apps">分身应用</string>
+    <string name="clone_apps_description">仅显示荣耀系统分身用户中的应用。</string>
+    <string name="clone_loading_users">正在读取 Android 用户空间…</string>
+    <string name="clone_loading_apps">正在读取分身应用…</string>
+    <string name="clone_app_count">User %1$d：发现 %2$d 个第三方应用</string>
+    <string name="clone_no_apps">该分身用户中没有发现第三方应用。</string>
+    <string name="clone_invalid_user">无效用户。为安全起见，不允许操作 User 0。</string>
+    <string name="action_refresh">刷新</string>
 </resources>
